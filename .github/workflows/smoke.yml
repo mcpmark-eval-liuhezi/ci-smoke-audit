@@ -1,0 +1,39 @@
+name: Smoke Test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Smoke check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run smoke checks
+        run: |
+          set -euo pipefail
+          echo "Smoke test started at $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a smoke.log
+          echo "Repository: ${GITHUB_REPOSITORY}" | tee -a smoke.log
+          echo "Commit: ${GITHUB_SHA}" | tee -a smoke.log
+          echo "Workflow: ${GITHUB_WORKFLOW}" | tee -a smoke.log
+          echo "Runner OS: ${RUNNER_OS:-unknown}" | tee -a smoke.log
+          echo "--- assertions ---"
+          test -f README.md
+          echo "README.md present: OK" | tee -a smoke.log
+          git log -1 --format='Latest commit: %H (%s)' | tee -a smoke.log
+          echo "--- assertions complete ---"
+          echo "SMOKE TEST PASSED" | tee -a smoke.log
+
+      - name: Upload smoke log artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log
+          path: smoke.log
+          retention-days: 30
+          if-no-files-found: error
